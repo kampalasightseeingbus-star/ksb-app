@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "Kampala Sightseeing Bus",
+    "slug": "ksb",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "ksb",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ksb.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "KSB needs your location to show nearby bus stops and track your bus.",
+        "NSLocationAlwaysUsageDescription": "KSB needs your location to track your bus in real time.",
+        "NSCameraUsageDescription": "KSB needs camera access to scan QR codes for boarding."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.ksb.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#FCDE06",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "KSB needs location to track your bus."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7b454c2c-9e84-4303-879a-af57961d06d2"
+      }
+    }
+  }
+}
