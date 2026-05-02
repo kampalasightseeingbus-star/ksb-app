@@ -4,3 +4,7 @@ dist/
 build/
 node_modules/
 node_modules/
+*.dll
+*.exe
+*.node
+*.ttf
