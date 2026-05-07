@@ -87,21 +87,8 @@ const generateDays = () => {
   return days;
 };
 
-// ─── GENERATE 24 HOURS ────────────────────────────────────────────
-const generateHours = () => {
-  const hours = [];
-  for (let h = 0; h < 24; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const hour = h.toString().padStart(2, '0');
-      const minute = m.toString().padStart(2, '0');
-      hours.push(`${hour}:${minute}`);
-    }
-  }
-  return hours;
-};
-
 const ALL_DAYS = generateDays();
-const ALL_HOURS = generateHours();
+const ALL_HOURS = ['09:00', '14:00'];
 
 export default function BookingScreen() {
   const router = useRouter();
@@ -109,19 +96,24 @@ export default function BookingScreen() {
   // State for routes list
   const [routes, setRoutes] = useState<any[]>(FALLBACK_ROUTES);
   const [loadingRoutes, setLoadingRoutes] = useState(true);
-  
+
   // [CHANGED] Multiple routes can now be selected simultaneously
   // Instead of a single selectedRoute, we now keep an array of all selected routes
   const [selectedRoutes, setSelectedRoutes] = useState<any[]>([]);
-  
+
   // [CHANGED] Each route has its own details stored in an object keyed by route ID
   // This allows independent selection of stops, days, times etc. for each route
-  const [routeDetails, setRouteDetails] = useState<Record<number, {
-    stop: string | null;
-    day: any;
-    time: string | null;
-  }>>({});
-  
+  const [routeDetails, setRouteDetails] = useState<
+    Record<
+      number,
+      {
+        stop: string | null;
+        day: any;
+        time: string | null;
+      }
+    >
+  >({});
+
   // [KEPT] These remain global settings that apply to all routes collectively
   const [passengers, setPassengers] = useState(1);
   const [currency, setCurrency] = useState<'ugx' | 'usd' | null>(null);
@@ -159,31 +151,31 @@ export default function BookingScreen() {
   // [CHANGED] Instead of resetting, this now ADDS routes to the selection
   const handleSelectRoute = (route: any) => {
     // Check if this route is already selected
-    const isAlreadySelected = selectedRoutes.some(r => r.id === route.id);
-    
+    const isAlreadySelected = selectedRoutes.some((r) => r.id === route.id);
+
     if (isAlreadySelected) {
       // [NEW] If route is already selected, REMOVE it (toggle behavior)
-      setSelectedRoutes(prev => prev.filter(r => r.id !== route.id));
-      
+      setSelectedRoutes((prev) => prev.filter((r) => r.id !== route.id));
+
       // Also remove its details from routeDetails
-      setRouteDetails(prev => {
+      setRouteDetails((prev) => {
         const newDetails = { ...prev };
         delete newDetails[route.id];
         return newDetails;
       });
     } else {
       // [NEW] Add the new route to the array (alongside any existing selections)
-      setSelectedRoutes(prev => [...prev, route]);
-      
+      setSelectedRoutes((prev) => [...prev, route]);
+
       // [NEW] Initialize empty details for this new route
       // We don't reset other routes' details - each route maintains its own state
-      setRouteDetails(prev => ({
+      setRouteDetails((prev) => ({
         ...prev,
         [route.id]: {
           stop: null,
           day: null,
           time: null,
-        }
+        },
       }));
     }
   };
@@ -196,70 +188,70 @@ export default function BookingScreen() {
 
   // [NEW] Helper function to update a specific route's detail
   const updateRouteDetail = (routeId: number, field: string, value: any) => {
-    setRouteDetails(prev => ({
+    setRouteDetails((prev) => ({
       ...prev,
       [routeId]: {
         ...prev[routeId],
         [field]: value,
-      }
+      },
     }));
   };
 
   // [CHANGED] Calculate total amount across ALL selected routes
   const getAmount = () => {
     if (selectedRoutes.length === 0 || !currency) return 0;
-    
+
     return selectedRoutes.reduce((total, route) => {
       const base = currency === 'ugx' ? route.price_ugx : route.price_usd;
-      return total + (base * passengers);
+      return total + base * passengers;
     }, 0);
   };
 
-  const getCurrencySymbol = () => currency === 'usd' ? '$' : 'UGX';
+  const getCurrencySymbol = () => (currency === 'usd' ? '$' : 'UGX');
 
   // [NEW] Check if all selected routes have complete details
   const areAllRoutesComplete = () => {
     if (selectedRoutes.length === 0) return false;
-    
-    return selectedRoutes.every(route => {
+
+    return selectedRoutes.every((route) => {
       const details = routeDetails[route.id];
       return details?.stop && details?.day && details?.time;
     });
   };
 
   const handleProceed = () => {
-    if (selectedRoutes.length === 0) { 
-      Alert.alert('Incomplete', 'Please select at least one tour.'); 
-      return; 
+    if (selectedRoutes.length === 0) {
+      Alert.alert('Incomplete', 'Please select at least one tour.');
+      return;
     }
-    
+
     // Check each route has complete details
-    const incompleteRoutes = selectedRoutes.filter(route => {
+    const incompleteRoutes = selectedRoutes.filter((route) => {
       const details = routeDetails[route.id];
       return !details?.stop || !details?.day || !details?.time;
     });
-    
+
     if (incompleteRoutes.length > 0) {
       Alert.alert(
-        'Incomplete', 
-        `Please complete all details for: ${incompleteRoutes.map(r => r.name).join(', ')}`
-      ); 
-      return; 
+        'Incomplete',
+        `Please complete all details for: ${incompleteRoutes.map((r) => r.name).join(', ')}`
+      );
+      return;
     }
-    
-    if (!currency) { 
-      Alert.alert('Incomplete', 'Please select Local (UGX) or International (USD).'); 
-      return; 
+
+    if (!currency) {
+      Alert.alert('Incomplete', 'Please select Local (UGX) or International (USD).');
+      return;
     }
-    if (!selectedPayment) { 
-      Alert.alert('Incomplete', 'Please select a payment method.'); 
-      return; 
+    if (!selectedPayment) {
+      Alert.alert('Incomplete', 'Please select a payment method.');
+      return;
     }
 
     // [CHANGED] Create booking parameters for multiple routes
     const params = {
       // Send all routes with their individual details
-      routes: selectedRoutes.map(route => ({
+      routes: selectedRoutes.map((route) => ({
         routeId: route.id,
         routeName: route.name,
         stopName: routeDetails[route.id].stop,
@@ -297,7 +289,6 @@ export default function BookingScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-
         {/* ── STEP 1: SELECT TOUR(S) ─────────────────────────── */}
         <Text style={styles.stepTitle}>1. Select Tour(s) - Multi-Select Enabled</Text>
         {loadingRoutes ? (
@@ -309,7 +300,7 @@ export default function BookingScreen() {
               style={[
                 styles.routeCard,
                 // [CHANGED] Check if route is in selectedRoutes array
-                selectedRoutes.some(r => r.id === route.id) && styles.cardSelected,
+                selectedRoutes.some((r) => r.id === route.id) && styles.cardSelected,
               ]}
               onPress={() => handleSelectRoute(route)}
             >
@@ -329,14 +320,12 @@ export default function BookingScreen() {
                       </Text>
                     </View>
                     <View style={[styles.pricePill, styles.pricePillUSD]}>
-                      <Text style={styles.pricePillText}>
-                        ${route.price_usd} USD
-                      </Text>
+                      <Text style={styles.pricePillText}>${route.price_usd} USD</Text>
                     </View>
                   </View>
                 </View>
               </View>
-              {selectedRoutes.some(r => r.id === route.id) && (
+              {selectedRoutes.some((r) => r.id === route.id) && (
                 <Ionicons
                   name="checkmark-circle"
                   size={22}
@@ -361,9 +350,7 @@ export default function BookingScreen() {
         {/* [CHANGED] Loop through each selected route to show its own stop picker */}
         {selectedRoutes.map((route) => (
           <View key={`stop-${route.id}`}>
-            <Text style={styles.stepTitle}>
-              2. Pick-up Stop for {route.name}
-            </Text>
+            <Text style={styles.stepTitle}>2. Pick-up Stop for {route.name}</Text>
             <TouchableOpacity
               style={styles.selectorBtn}
               onPress={() => {
@@ -372,10 +359,12 @@ export default function BookingScreen() {
               }}
             >
               <Ionicons name="location-outline" size={20} color="#FCDE06" />
-              <Text style={[
-                styles.selectorText,
-                routeDetails[route.id]?.stop && styles.selectorTextSelected,
-              ]}>
+              <Text
+                style={[
+                  styles.selectorText,
+                  routeDetails[route.id]?.stop && styles.selectorTextSelected,
+                ]}
+              >
                 {routeDetails[route.id]?.stop || 'Tap to choose your stop'}
               </Text>
               <Ionicons name="chevron-down" size={18} color="#666666" />
@@ -385,12 +374,10 @@ export default function BookingScreen() {
 
         {/* ── STEP 3: SELECT DATES ──────────────────────────── */}
         {/* [CHANGED] Loop through each selected route for date selection */}
-        {selectedRoutes.map((route) => (
+        {selectedRoutes.map((route) =>
           routeDetails[route.id]?.stop ? (
             <View key={`date-${route.id}`}>
-              <Text style={styles.stepTitle}>
-                3. Select Date for {route.name}
-              </Text>
+              <Text style={styles.stepTitle}>3. Select Date for {route.name}</Text>
               <TouchableOpacity
                 style={styles.selectorBtn}
                 onPress={() => {
@@ -399,10 +386,12 @@ export default function BookingScreen() {
                 }}
               >
                 <Ionicons name="calendar-outline" size={20} color="#FCDE06" />
-                <Text style={[
-                  styles.selectorText,
-                  routeDetails[route.id]?.day && styles.selectorTextSelected,
-                ]}>
+                <Text
+                  style={[
+                    styles.selectorText,
+                    routeDetails[route.id]?.day && styles.selectorTextSelected,
+                  ]}
+                >
                   {routeDetails[route.id]?.day
                     ? `${routeDetails[route.id].day.dayName} ${routeDetails[route.id].day.dayNumber} ${routeDetails[route.id].day.monthName}${routeDetails[route.id].day.label ? ` (${routeDetails[route.id].day.label})` : ''}`
                     : 'Tap to choose date'}
@@ -411,16 +400,14 @@ export default function BookingScreen() {
               </TouchableOpacity>
             </View>
           ) : null
-        ))}
+        )}
 
-        {/* ── STEP 4: SELECT TIMES ──────────────────────────── */}
+        {/* ── STEP 4: SELECT TIME ───────────────────────────── */}
         {/* [CHANGED] Loop through each selected route for time selection */}
-        {selectedRoutes.map((route) => (
+        {selectedRoutes.map((route) =>
           routeDetails[route.id]?.day ? (
             <View key={`time-${route.id}`}>
-              <Text style={styles.stepTitle}>
-                4. Pick-up Time for {route.name} (24hr)
-              </Text>
+              <Text style={styles.stepTitle}>4. Pick-up Time for {route.name}</Text>
               <TouchableOpacity
                 style={styles.selectorBtn}
                 onPress={() => {
@@ -429,21 +416,23 @@ export default function BookingScreen() {
                 }}
               >
                 <Ionicons name="time-outline" size={20} color="#FCDE06" />
-                <Text style={[
-                  styles.selectorText,
-                  routeDetails[route.id]?.time && styles.selectorTextSelected,
-                ]}>
+                <Text
+                  style={[
+                    styles.selectorText,
+                    routeDetails[route.id]?.time && styles.selectorTextSelected,
+                  ]}
+                >
                   {routeDetails[route.id]?.time || 'Tap to choose time'}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#666666" />
               </TouchableOpacity>
             </View>
           ) : null
-        ))}
+        )}
 
         {/* ── STEP 5: NUMBER OF PASSENGERS ─────────────────── */}
         {/* [KEPT] Shown only when at least one route has time selected */}
-        {selectedRoutes.some(route => routeDetails[route.id]?.time) && (
+        {selectedRoutes.some((route) => routeDetails[route.id]?.time) && (
           <>
             <Text style={styles.stepTitle}>5. Number of Passengers</Text>
             <View style={styles.counterRow}>
@@ -471,37 +460,38 @@ export default function BookingScreen() {
 
         {/* ── STEP 6: LOCAL OR INTERNATIONAL ───────────────── */}
         {/* [KEPT] Global currency selection applies to all routes */}
-        {selectedRoutes.some(route => routeDetails[route.id]?.time) && (
+        {selectedRoutes.some((route) => routeDetails[route.id]?.time) && (
           <>
             <Text style={styles.stepTitle}>6. Pricing</Text>
             <View style={styles.currencyRow}>
-
               {/* UGX - Locals */}
               <TouchableOpacity
-                style={[
-                  styles.currencyCard,
-                  currency === 'ugx' && styles.currencyCardSelected,
-                ]}
+                style={[styles.currencyCard, currency === 'ugx' && styles.currencyCardSelected]}
                 onPress={() => setCurrency('ugx')}
               >
                 <Text style={styles.currencyFlag}>🇺🇬</Text>
                 <Text style={styles.currencyLabel}>Local</Text>
                 {/* [CHANGED] Show combined price for all selected routes */}
                 <Text style={styles.currencyAmount}>
-                  UGX {selectedRoutes.reduce((sum, route) => sum + (route.price_ugx || 0), 0).toLocaleString()}
+                  UGX{' '}
+                  {selectedRoutes
+                    .reduce((sum, route) => sum + (route.price_ugx || 0), 0)
+                    .toLocaleString()}
                 </Text>
                 <Text style={styles.currencyPer}>total for all tours</Text>
                 {currency === 'ugx' && (
-                  <Ionicons name="checkmark-circle" size={20} color="#FCDE06" style={styles.currencyCheck} />
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color="#FCDE06"
+                    style={styles.currencyCheck}
+                  />
                 )}
               </TouchableOpacity>
 
               {/* USD - International */}
               <TouchableOpacity
-                style={[
-                  styles.currencyCard,
-                  currency === 'usd' && styles.currencyCardSelected,
-                ]}
+                style={[styles.currencyCard, currency === 'usd' && styles.currencyCardSelected]}
                 onPress={() => setCurrency('usd')}
               >
                 <Text style={styles.currencyFlag}>🌍</Text>
@@ -512,10 +502,14 @@ export default function BookingScreen() {
                 </Text>
                 <Text style={styles.currencyPer}>total for all tours</Text>
                 {currency === 'usd' && (
-                  <Ionicons name="checkmark-circle" size={20} color="#FCDE06" style={styles.currencyCheck} />
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color="#FCDE06"
+                    style={styles.currencyCheck}
+                  />
                 )}
               </TouchableOpacity>
-
             </View>
           </>
         )}
@@ -535,7 +529,7 @@ export default function BookingScreen() {
                 style={[
                   styles.payCard,
                   selectedPayment === method.id && styles.cardSelected,
-                  (currency === 'usd' && method.id !== 'card') && styles.payCardDisabled,
+                  currency === 'usd' && method.id !== 'card' && styles.payCardDisabled,
                 ]}
                 onPress={() => {
                   if (currency === 'usd' && method.id !== 'card') {
@@ -578,21 +572,19 @@ export default function BookingScreen() {
                   )}
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Pick-up Stop</Text>
-                    <Text style={styles.summaryValue}>
-                      {routeDetails[route.id]?.stop}
-                    </Text>
+                    <Text style={styles.summaryValue}>{routeDetails[route.id]?.stop}</Text>
                   </View>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Date</Text>
                     <Text style={styles.summaryValue}>
-                      {routeDetails[route.id]?.day?.dayName} {routeDetails[route.id]?.day?.dayNumber} {routeDetails[route.id]?.day?.monthName}
+                      {routeDetails[route.id]?.day?.dayName}{' '}
+                      {routeDetails[route.id]?.day?.dayNumber}{' '}
+                      {routeDetails[route.id]?.day?.monthName}
                     </Text>
                   </View>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>Time</Text>
-                    <Text style={styles.summaryValue}>
-                      {routeDetails[route.id]?.time}
-                    </Text>
+                    <Text style={styles.summaryValue}>{routeDetails[route.id]?.time}</Text>
                   </View>
                 </View>
               ))}
@@ -617,8 +609,8 @@ export default function BookingScreen() {
                   {selectedPayment === 'mtn_momo'
                     ? 'MTN Mobile Money'
                     : selectedPayment === 'airtel_money'
-                    ? 'Airtel Money'
-                    : 'Card'}
+                      ? 'Airtel Money'
+                      : 'Card'}
                 </Text>
               </View>
               <View style={[styles.summaryRow, styles.totalRow]}>
@@ -639,7 +631,8 @@ export default function BookingScreen() {
             <TouchableOpacity style={styles.proceedBtn} onPress={handleProceed}>
               <Ionicons name="arrow-forward" size={20} color="#000000" />
               <Text style={styles.proceedText}>
-                Proceed to Payment ({selectedRoutes.length} tour{selectedRoutes.length > 1 ? 's' : ''})
+                Proceed to Payment ({selectedRoutes.length} tour
+                {selectedRoutes.length > 1 ? 's' : ''})
               </Text>
             </TouchableOpacity>
           </>
@@ -660,7 +653,10 @@ export default function BookingScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {/* [CHANGED] Show which route we're selecting stop for */}
-                Pick-up Stop {activeRouteId ? `- ${selectedRoutes.find(r => r.id === activeRouteId)?.name}` : ''}
+                Pick-up Stop{' '}
+                {activeRouteId
+                  ? `- ${selectedRoutes.find((r) => r.id === activeRouteId)?.name}`
+                  : ''}
               </Text>
               <TouchableOpacity onPress={() => setShowStopModal(false)}>
                 <Ionicons name="close" size={24} color="#FFFFFF" />
@@ -668,35 +664,41 @@ export default function BookingScreen() {
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* [CHANGED] Get stops for the active route instead of single selectedRoute */}
-              {activeRouteId && getStops(selectedRoutes.find(r => r.id === activeRouteId)).map((stop, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.modalItem,
-                    routeDetails[activeRouteId]?.stop === stop && styles.modalItemSelected,
-                  ]}
-                  onPress={() => {
-                    // [CHANGED] Update the specific route's stop
-                    updateRouteDetail(activeRouteId, 'stop', stop);
-                    setShowStopModal(false);
-                  }}
-                >
-                  <View style={styles.stopNumber}>
-                    <Text style={styles.stopNumberText}>
-                      {index === 0 ? '🟢' : index + 1}
-                    </Text>
-                  </View>
-                  <Text style={[
-                    styles.modalItemText,
-                    routeDetails[activeRouteId]?.stop === stop && styles.modalItemTextSelected,
-                  ]}>
-                    {stop}
-                  </Text>
-                  {routeDetails[activeRouteId]?.stop === stop && (
-                    <Ionicons name="checkmark" size={18} color="#FCDE06" />
-                  )}
-                </TouchableOpacity>
-              ))}
+              {activeRouteId &&
+                getStops(selectedRoutes.find((r) => r.id === activeRouteId)).map(
+                  (stop, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.modalItem,
+                        routeDetails[activeRouteId]?.stop === stop && styles.modalItemSelected,
+                      ]}
+                      onPress={() => {
+                        // [CHANGED] Update the specific route's stop
+                        updateRouteDetail(activeRouteId, 'stop', stop);
+                        setShowStopModal(false);
+                      }}
+                    >
+                      <View style={styles.stopNumber}>
+                        <Text style={styles.stopNumberText}>
+                          {index === 0 ? '🟢' : index + 1}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.modalItemText,
+                          routeDetails[activeRouteId]?.stop === stop &&
+                            styles.modalItemTextSelected,
+                        ]}
+                      >
+                        {stop}
+                      </Text>
+                      {routeDetails[activeRouteId]?.stop === stop && (
+                        <Ionicons name="checkmark" size={18} color="#FCDE06" />
+                      )}
+                    </TouchableOpacity>
+                  )
+                )}
               <View style={{ height: 40 }} />
             </ScrollView>
           </View>
@@ -715,7 +717,10 @@ export default function BookingScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {/* [CHANGED] Show which route we're selecting date for */}
-                Choose Date {activeRouteId ? `- ${selectedRoutes.find(r => r.id === activeRouteId)?.name}` : ''}
+                Choose Date{' '}
+                {activeRouteId
+                  ? `- ${selectedRoutes.find((r) => r.id === activeRouteId)?.name}`
+                  : ''}
               </Text>
               <TouchableOpacity onPress={() => setShowCalendarModal(false)}>
                 <Ionicons name="close" size={24} color="#FFFFFF" />
@@ -737,7 +742,9 @@ export default function BookingScreen() {
                     key={day.fullDate}
                     style={[
                       styles.calDayRow,
-                      activeRouteId !== null && routeDetails[activeRouteId]?.day?.fullDate === day.fullDate && styles.modalItemSelected,
+                      activeRouteId !== null &&
+                        routeDetails[activeRouteId]?.day?.fullDate === day.fullDate &&
+                        styles.modalItemSelected,
                     ]}
                     onPress={() => {
                       // [CHANGED] Update the specific route's day
@@ -747,10 +754,14 @@ export default function BookingScreen() {
                   >
                     <View style={styles.calDayLeft}>
                       <Text style={styles.calDayName}>{day.dayName}</Text>
-                      <Text style={[
-                        styles.calDayNum,
-                        activeRouteId !== null && routeDetails[activeRouteId]?.day?.fullDate === day.fullDate && styles.calDayNumSelected,
-                      ]}>
+                      <Text
+                        style={[
+                          styles.calDayNum,
+                          activeRouteId !== null &&
+                            routeDetails[activeRouteId]?.day?.fullDate === day.fullDate &&
+                            styles.calDayNumSelected,
+                        ]}
+                      >
                         {day.dayNumber}
                       </Text>
                     </View>
@@ -759,9 +770,10 @@ export default function BookingScreen() {
                         <Text style={styles.calBadgeText}>{day.label}</Text>
                       </View>
                     ) : null}
-                    {activeRouteId && routeDetails[activeRouteId]?.day?.fullDate === day.fullDate && (
-                      <Ionicons name="checkmark-circle" size={20} color="#FCDE06" />
-                    )}
+                    {activeRouteId &&
+                      routeDetails[activeRouteId]?.day?.fullDate === day.fullDate && (
+                        <Ionicons name="checkmark-circle" size={20} color="#FCDE06" />
+                      )}
                   </TouchableOpacity>
                 );
                 return acc;
@@ -784,7 +796,10 @@ export default function BookingScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {/* [CHANGED] Show which route we're selecting time for */}
-                Choose Pick-up Time {activeRouteId ? `- ${selectedRoutes.find(r => r.id === activeRouteId)?.name}` : ''}
+                Choose Pick-up Time{' '}
+                {activeRouteId
+                  ? `- ${selectedRoutes.find((r) => r.id === activeRouteId)?.name}`
+                  : ''}
               </Text>
               <TouchableOpacity onPress={() => setShowTimeModal(false)}>
                 <Ionicons name="close" size={24} color="#FFFFFF" />
@@ -796,7 +811,9 @@ export default function BookingScreen() {
                   key={time}
                   style={[
                     styles.timeRow,
-                    activeRouteId !== null && routeDetails[activeRouteId]?.time === time && styles.modalItemSelected,
+                    activeRouteId !== null &&
+                      routeDetails[activeRouteId]?.time === time &&
+                      styles.modalItemSelected,
                   ]}
                   onPress={() => {
                     // [CHANGED] Update the specific route's time
@@ -807,20 +824,28 @@ export default function BookingScreen() {
                   <Ionicons
                     name="time-outline"
                     size={20}
-                    color={activeRouteId && routeDetails[activeRouteId]?.time === time ? '#FCDE06' : '#666666'}
+                    color={
+                      activeRouteId && routeDetails[activeRouteId]?.time === time
+                        ? '#FCDE06'
+                        : '#666666'
+                    }
                   />
-                  <Text style={[
-                    styles.timeText,
-                    activeRouteId !== null && routeDetails[activeRouteId]?.time === time && styles.timeTextSelected,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.timeText,
+                      activeRouteId !== null &&
+                        routeDetails[activeRouteId]?.time === time &&
+                        styles.timeTextSelected,
+                    ]}
+                  >
                     {time}
                   </Text>
                   <Text style={styles.timeAMPM}>
                     {parseInt(time.split(':')[0]) < 12
                       ? 'AM'
                       : parseInt(time.split(':')[0]) === 12
-                      ? 'Noon'
-                      : 'PM'}
+                        ? 'Noon'
+                        : 'PM'}
                   </Text>
                   {activeRouteId && routeDetails[activeRouteId]?.time === time && (
                     <Ionicons name="checkmark" size={18} color="#FCDE06" />
@@ -832,7 +857,6 @@ export default function BookingScreen() {
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
@@ -840,18 +864,25 @@ export default function BookingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000000' },
   header: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20,
-    borderBottomWidth: 3, borderBottomColor: '#FCDE06',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    borderBottomWidth: 3,
+    borderBottomColor: '#FCDE06',
   },
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#FFFFFF' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
 
   stepTitle: {
-    fontSize: 16, fontWeight: 'bold',
-    color: '#FCDE06', marginTop: 24, marginBottom: 12,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FCDE06',
+    marginTop: 24,
+    marginBottom: 12,
   },
 
   // [NEW] Style for the selected routes count banner
@@ -871,9 +902,14 @@ const styles = StyleSheet.create({
   },
 
   routeCard: {
-    backgroundColor: '#1a1a1a', borderRadius: 14, padding: 16,
-    marginBottom: 12, borderWidth: 2, borderColor: '#333333',
-    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#333333',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   cardSelected: { borderColor: '#FCDE06', backgroundColor: '#111100' },
   routeLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
@@ -882,30 +918,46 @@ const styles = StyleSheet.create({
   routeMeta: { fontSize: 12, color: '#AAAAAA', marginBottom: 8 },
   pricePills: { flexDirection: 'row', gap: 8 },
   pricePill: {
-    backgroundColor: '#000000', borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1, borderColor: '#333333',
+    backgroundColor: '#000000',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#333333',
   },
   pricePillUSD: { borderColor: '#FCDE06' },
   pricePillText: { fontSize: 11, color: '#FFFFFF', fontWeight: '600' },
   checkIcon: { marginLeft: 8 },
 
   selectorBtn: {
-    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16,
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderWidth: 2, borderColor: '#333333',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 2,
+    borderColor: '#333333',
   },
   selectorText: { flex: 1, fontSize: 15, color: '#666666' },
   selectorTextSelected: { color: '#FFFFFF', fontWeight: '500' },
 
   counterRow: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 24, marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 24,
+    marginBottom: 16,
   },
   counterBtn: {
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#1a1a1a', justifyContent: 'center',
-    alignItems: 'center', borderWidth: 2, borderColor: '#333333',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#333333',
   },
   counterDisplay: { alignItems: 'center', gap: 4 },
   counterNum: { fontSize: 40, fontWeight: 'bold', color: '#FCDE06' },
@@ -913,9 +965,14 @@ const styles = StyleSheet.create({
 
   currencyRow: { flexDirection: 'row', gap: 12 },
   currencyCard: {
-    flex: 1, backgroundColor: '#1a1a1a', borderRadius: 14,
-    padding: 16, alignItems: 'center', gap: 6,
-    borderWidth: 2, borderColor: '#333333',
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 2,
+    borderColor: '#333333',
   },
   currencyCardSelected: { borderColor: '#FCDE06', backgroundColor: '#111100' },
   currencyFlag: { fontSize: 32 },
@@ -925,9 +982,15 @@ const styles = StyleSheet.create({
   currencyCheck: { position: 'absolute', top: 8, right: 8 },
 
   payCard: {
-    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16,
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderWidth: 2, borderColor: '#333333', marginBottom: 10,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 2,
+    borderColor: '#333333',
+    marginBottom: 10,
   },
   payCardDisabled: { opacity: 0.4 },
   payIcon: { fontSize: 24 },
@@ -935,11 +998,19 @@ const styles = StyleSheet.create({
   payTag: { fontSize: 11, color: '#666666', marginTop: 2 },
 
   summaryCard: {
-    backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20,
-    marginTop: 24, borderWidth: 2, borderColor: '#FCDE06', gap: 12,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 24,
+    borderWidth: 2,
+    borderColor: '#FCDE06',
+    gap: 12,
   },
   summaryTitle: {
-    fontSize: 16, fontWeight: 'bold', color: '#FCDE06', marginBottom: 4,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FCDE06',
+    marginBottom: 4,
   },
   // [NEW] Style for grouping each route in the summary
   routeSummaryGroup: {
@@ -960,7 +1031,9 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   summaryRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   totalRow: {
     marginTop: 8,
@@ -970,72 +1043,109 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { fontSize: 14, color: '#AAAAAA' },
   summaryValue: {
-    fontSize: 14, color: '#FFFFFF', fontWeight: '500',
-    textAlign: 'right', flex: 1, marginLeft: 16,
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '500',
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 16,
   },
   summaryTotal: { fontSize: 20, fontWeight: 'bold', color: '#FCDE06' },
 
   proceedBtn: {
-    backgroundColor: '#FCDE06', borderRadius: 14, paddingVertical: 18,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, marginTop: 16,
+    backgroundColor: '#FCDE06',
+    borderRadius: 14,
+    paddingVertical: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
   },
   proceedText: { fontSize: 18, fontWeight: 'bold', color: '#000000' },
 
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: '#111111', borderTopLeftRadius: 24,
-    borderTopRightRadius: 24, paddingTop: 8,
+    backgroundColor: '#111111',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 8,
     maxHeight: '80%',
   },
   modalHeader: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: '#222222',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
   },
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#FFFFFF' },
   modalItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
   },
   modalItemSelected: { backgroundColor: '#1a1a00' },
   modalItemText: { flex: 1, fontSize: 14, color: '#CCCCCC' },
   modalItemTextSelected: { color: '#FCDE06', fontWeight: '600' },
   stopNumber: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   stopNumberText: { fontSize: 12, fontWeight: 'bold', color: '#FCDE06' },
 
   calMonthHeader: {
-    fontSize: 14, fontWeight: 'bold', color: '#FCDE06',
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8,
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FCDE06',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
     backgroundColor: '#111111',
   },
   calDayRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
   },
   calDayLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   calDayName: { fontSize: 13, color: '#666666', width: 36 },
   calDayNum: { fontSize: 20, fontWeight: 'bold', color: '#FFFFFF' },
   calDayNumSelected: { color: '#FCDE06' },
   calBadge: {
-    backgroundColor: '#FCDE06', borderRadius: 12,
-    paddingHorizontal: 10, paddingVertical: 3,
+    backgroundColor: '#FCDE06',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
   calBadgeText: { fontSize: 11, fontWeight: 'bold', color: '#000000' },
 
   timeRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
   },
   timeText: { flex: 1, fontSize: 18, fontWeight: 'bold', color: '#FFFFFF' },
   timeTextSelected: { color: '#FCDE06' },

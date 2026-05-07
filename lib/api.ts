@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ⚠️ Replace YOUR_PC_IP with your actual IP from running ipconfig in CMD
-export const BASE_URL = 'http://10.16.19.147:3000/api';
+export const BASE_URL = 'https://ksb-app-backend-production.up.railway.app/api';
 
 // ─── Token Helpers ────────────────────────────────────────────────
 export const saveToken = async (token: string) => {
