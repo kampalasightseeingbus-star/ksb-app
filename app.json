@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Kampala Sightseeing Bus",
+    "name": "KSB",
     "slug": "ksb",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,9 +8,9 @@
     "scheme": "ksb",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/logo.jpeg",
       "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": false,
@@ -26,8 +26,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#000000"
+        "foregroundImage": "./assets/images/icon.PNG",
+        "backgroundColor": "#ffffff"
       },
       "package": "com.ksb.app",
       "config": {
@@ -48,7 +48,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.png",
+          "icon": "./assets/images/icon.PNG",
           "color": "#FCDE06",
           "sounds": []
         }

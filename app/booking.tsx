@@ -98,12 +98,10 @@ export default function BookingScreen() {
   const [routes, setRoutes] = useState<any[]>(FALLBACK_ROUTES);
   const [loadingRoutes, setLoadingRoutes] = useState(true);
 
-  // [CHANGED] Multiple routes can now be selected simultaneously
-  // Instead of a single selectedRoute, we now keep an array of all selected routes
+  // Multiple routes can now be selected simultaneously
   const [selectedRoutes, setSelectedRoutes] = useState<any[]>([]);
 
-  // [CHANGED] Each route has its own details stored in an object keyed by route ID
-  // This allows independent selection of stops, days, times etc. for each route
+  // Each route has its own details stored in an object keyed by route ID
   const [routeDetails, setRouteDetails] = useState<
     Record<
       number,
@@ -115,13 +113,11 @@ export default function BookingScreen() {
     >
   >({});
 
-  // [KEPT] These remain global settings that apply to all routes collectively
+  // Global settings that apply to all routes collectively
   const [passengers, setPassengers] = useState(1);
   const [currency, setCurrency] = useState<'ugx' | 'usd' | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
 
-  // [CHANGED] Modal states now need to track which route we're modifying
-  // Added activeRouteId to know which route's details we're editing
+  // Modal states track which route we're modifying
   const [activeRouteId, setActiveRouteId] = useState<number | null>(null);
   const [showStopModal, setShowStopModal] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -149,27 +145,21 @@ export default function BookingScreen() {
     }
   };
 
-  // [CHANGED] Instead of resetting, this now ADDS routes to the selection
+  // Adds routes to the selection (toggle behavior)
   const handleSelectRoute = (route: any) => {
-    // Check if this route is already selected
     const isAlreadySelected = selectedRoutes.some((r) => r.id === route.id);
 
     if (isAlreadySelected) {
-      // [NEW] If route is already selected, REMOVE it (toggle behavior)
+      // If route is already selected, REMOVE it
       setSelectedRoutes((prev) => prev.filter((r) => r.id !== route.id));
-
-      // Also remove its details from routeDetails
       setRouteDetails((prev) => {
         const newDetails = { ...prev };
         delete newDetails[route.id];
         return newDetails;
       });
     } else {
-      // [NEW] Add the new route to the array (alongside any existing selections)
+      // Add the new route to the array
       setSelectedRoutes((prev) => [...prev, route]);
-
-      // [NEW] Initialize empty details for this new route
-      // We don't reset other routes' details - each route maintains its own state
       setRouteDetails((prev) => ({
         ...prev,
         [route.id]: {
@@ -181,13 +171,13 @@ export default function BookingScreen() {
     }
   };
 
-  // [NEW] Helper function to get stops for a specific route
+  // Helper function to get stops for a specific route
   const getStops = (route: any) => {
     if (!route) return [];
     return ROUTE_STOPS[route.name] || [];
   };
 
-  // [NEW] Helper function to update a specific route's detail
+  // Helper function to update a specific route's detail
   const updateRouteDetail = (routeId: number, field: string, value: any) => {
     setRouteDetails((prev) => ({
       ...prev,
@@ -198,10 +188,9 @@ export default function BookingScreen() {
     }));
   };
 
-  // [CHANGED] Calculate total amount across ALL selected routes
+  // Calculate total amount across ALL selected routes
   const getAmount = () => {
     if (selectedRoutes.length === 0 || !currency) return 0;
-
     return selectedRoutes.reduce((total, route) => {
       const base = currency === 'ugx' ? route.price_ugx : route.price_usd;
       return total + base * passengers;
@@ -210,17 +199,17 @@ export default function BookingScreen() {
 
   const getCurrencySymbol = () => (currency === 'usd' ? '$' : 'UGX');
 
-  // [NEW] Check if all selected routes have complete details
+  // Check if all selected routes have complete details
   const areAllRoutesComplete = () => {
     if (selectedRoutes.length === 0) return false;
-
     return selectedRoutes.every((route) => {
       const details = routeDetails[route.id];
       return details?.stop && details?.day && details?.time;
     });
   };
 
-    const handleProceed = async () => {
+  // Initiate payment — sends to Pesapal where user chooses payment method
+  const handleProceed = async () => {
     if (selectedRoutes.length === 0) {
       Alert.alert('Incomplete', 'Please select at least one tour.');
       return;
@@ -243,10 +232,6 @@ export default function BookingScreen() {
       Alert.alert('Incomplete', 'Please select Local (UGX) or International (USD).');
       return;
     }
-    if (!selectedPayment) {
-      Alert.alert('Incomplete', 'Please select a payment method.');
-      return;
-    }
 
     try {
       const { paymentsAPI } = require('@/lib/api');
@@ -254,7 +239,7 @@ export default function BookingScreen() {
       const data = await paymentsAPI.initiate(
         1,              // schedule_id
         1,              // seat_number
-        selectedPayment,
+        'card',         // Default — user chooses actual payment method on Pesapal
         currency.toUpperCase(),
         passengers
       );
@@ -288,7 +273,7 @@ export default function BookingScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── STEP 1: SELECT TOUR(S) ─────────────────────────── */}
-        <Text style={styles.stepTitle}>1. Select Tour(s) - Multi-Select Enabled</Text>
+        <Text style={styles.stepTitle}>1. Select Tour(s)</Text>
         {loadingRoutes ? (
           <ActivityIndicator color="#FCDE06" style={{ marginVertical: 20 }} />
         ) : (
@@ -297,7 +282,6 @@ export default function BookingScreen() {
               key={route.id}
               style={[
                 styles.routeCard,
-                // [CHANGED] Check if route is in selectedRoutes array
                 selectedRoutes.some((r) => r.id === route.id) && styles.cardSelected,
               ]}
               onPress={() => handleSelectRoute(route)}
@@ -335,7 +319,7 @@ export default function BookingScreen() {
           ))
         )}
 
-        {/* [NEW] Display selected routes count and details */}
+        {/* Display selected routes count */}
         {selectedRoutes.length > 0 && (
           <View style={styles.selectedCountBanner}>
             <Text style={styles.selectedCountText}>
@@ -345,7 +329,6 @@ export default function BookingScreen() {
         )}
 
         {/* ── STEP 2: SELECT PICK-UP STOPS ──────────────────── */}
-        {/* [CHANGED] Loop through each selected route to show its own stop picker */}
         {selectedRoutes.map((route) => (
           <View key={`stop-${route.id}`}>
             <Text style={styles.stepTitle}>2. Pick-up Stop for {route.name}</Text>
@@ -371,7 +354,6 @@ export default function BookingScreen() {
         ))}
 
         {/* ── STEP 3: SELECT DATES ──────────────────────────── */}
-        {/* [CHANGED] Loop through each selected route for date selection */}
         {selectedRoutes.map((route) =>
           routeDetails[route.id]?.stop ? (
             <View key={`date-${route.id}`}>
@@ -401,7 +383,6 @@ export default function BookingScreen() {
         )}
 
         {/* ── STEP 4: SELECT TIME ───────────────────────────── */}
-        {/* [CHANGED] Loop through each selected route for time selection */}
         {selectedRoutes.map((route) =>
           routeDetails[route.id]?.day ? (
             <View key={`time-${route.id}`}>
@@ -429,7 +410,6 @@ export default function BookingScreen() {
         )}
 
         {/* ── STEP 5: NUMBER OF PASSENGERS ─────────────────── */}
-        {/* [KEPT] Shown only when at least one route has time selected */}
         {selectedRoutes.some((route) => routeDetails[route.id]?.time) && (
           <>
             <Text style={styles.stepTitle}>5. Number of Passengers</Text>
@@ -457,7 +437,6 @@ export default function BookingScreen() {
         )}
 
         {/* ── STEP 6: LOCAL OR INTERNATIONAL ───────────────── */}
-        {/* [KEPT] Global currency selection applies to all routes */}
         {selectedRoutes.some((route) => routeDetails[route.id]?.time) && (
           <>
             <Text style={styles.stepTitle}>6. Pricing</Text>
@@ -469,7 +448,6 @@ export default function BookingScreen() {
               >
                 <Text style={styles.currencyFlag}>🇺🇬</Text>
                 <Text style={styles.currencyLabel}>Local</Text>
-                {/* [CHANGED] Show combined price for all selected routes */}
                 <Text style={styles.currencyAmount}>
                   UGX{' '}
                   {selectedRoutes
@@ -494,7 +472,6 @@ export default function BookingScreen() {
               >
                 <Text style={styles.currencyFlag}>🌍</Text>
                 <Text style={styles.currencyLabel}>International</Text>
-                {/* [CHANGED] Show combined price for all selected routes */}
                 <Text style={styles.currencyAmount}>
                   ${selectedRoutes.reduce((sum, route) => sum + (route.price_usd || 0), 0)} USD
                 </Text>
@@ -512,55 +489,12 @@ export default function BookingScreen() {
           </>
         )}
 
-        {/* ── STEP 7: PAYMENT METHOD ────────────────────────── */}
-        {/* [KEPT] Global payment method applies to all routes */}
-        {currency && (
-          <>
-            <Text style={styles.stepTitle}>7. Payment Method</Text>
-            {[
-              { id: 'mtn_momo', icon: '📱', label: 'MTN Mobile Money', tag: 'UGX only' },
-              { id: 'airtel_money', icon: '📲', label: 'Airtel Money', tag: 'UGX only' },
-              { id: 'card', icon: '💳', label: 'Credit / Debit Card', tag: 'UGX & USD' },
-            ].map((method) => (
-              <TouchableOpacity
-                key={method.id}
-                style={[
-                  styles.payCard,
-                  selectedPayment === method.id && styles.cardSelected,
-                  currency === 'usd' && method.id !== 'card' && styles.payCardDisabled,
-                ]}
-                onPress={() => {
-                  if (currency === 'usd' && method.id !== 'card') {
-                    Alert.alert(
-                      'Not Available',
-                      'Mobile Money only supports UGX payments. Please use Card for USD.'
-                    );
-                    return;
-                  }
-                  setSelectedPayment(method.id);
-                }}
-              >
-                <Text style={styles.payIcon}>{method.icon}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.payLabel}>{method.label}</Text>
-                  <Text style={styles.payTag}>{method.tag}</Text>
-                </View>
-                {selectedPayment === method.id && (
-                  <Ionicons name="checkmark-circle" size={20} color="#FCDE06" />
-                )}
-              </TouchableOpacity>
-            ))}
-          </>
-        )}
-
         {/* ── BOOKING SUMMARY ───────────────────────────────── */}
-        {/* [CHANGED] Show summary for all routes instead of single route */}
-        {areAllRoutesComplete() && currency && selectedPayment && (
+        {areAllRoutesComplete() && currency && (
           <>
             <View style={styles.summaryCard}>
               <Text style={styles.summaryTitle}>📋 Booking Summary</Text>
 
-              {/* [NEW] Show each route separately */}
               {selectedRoutes.map((route, index) => (
                 <View key={route.id} style={styles.routeSummaryGroup}>
                   {selectedRoutes.length > 1 && (
@@ -587,7 +521,6 @@ export default function BookingScreen() {
                 </View>
               ))}
 
-              {/* Global details */}
               <View style={styles.summaryDivider} />
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Passengers</Text>
@@ -603,13 +536,7 @@ export default function BookingScreen() {
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Payment</Text>
-                <Text style={styles.summaryValue}>
-                  {selectedPayment === 'mtn_momo'
-                    ? 'MTN Mobile Money'
-                    : selectedPayment === 'airtel_money'
-                      ? 'Airtel Money'
-                      : 'Card'}
-                </Text>
+                <Text style={styles.summaryValue}>Choose on Pesapal</Text>
               </View>
               <View style={[styles.summaryRow, styles.totalRow]}>
                 <Text style={styles.summaryLabel}>Total</Text>
@@ -650,7 +577,6 @@ export default function BookingScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {/* [CHANGED] Show which route we're selecting stop for */}
                 Pick-up Stop{' '}
                 {activeRouteId
                   ? `- ${selectedRoutes.find((r) => r.id === activeRouteId)?.name}`
@@ -661,7 +587,6 @@ export default function BookingScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* [CHANGED] Get stops for the active route instead of single selectedRoute */}
               {activeRouteId &&
                 getStops(selectedRoutes.find((r) => r.id === activeRouteId)).map(
                   (stop, index) => (
@@ -672,7 +597,6 @@ export default function BookingScreen() {
                         routeDetails[activeRouteId]?.stop === stop && styles.modalItemSelected,
                       ]}
                       onPress={() => {
-                        // [CHANGED] Update the specific route's stop
                         updateRouteDetail(activeRouteId, 'stop', stop);
                         setShowStopModal(false);
                       }}
@@ -714,7 +638,6 @@ export default function BookingScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {/* [CHANGED] Show which route we're selecting date for */}
                 Choose Date{' '}
                 {activeRouteId
                   ? `- ${selectedRoutes.find((r) => r.id === activeRouteId)?.name}`
@@ -745,7 +668,6 @@ export default function BookingScreen() {
                         styles.modalItemSelected,
                     ]}
                     onPress={() => {
-                      // [CHANGED] Update the specific route's day
                       activeRouteId && updateRouteDetail(activeRouteId, 'day', day);
                       setShowCalendarModal(false);
                     }}
@@ -793,7 +715,6 @@ export default function BookingScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {/* [CHANGED] Show which route we're selecting time for */}
                 Choose Pick-up Time{' '}
                 {activeRouteId
                   ? `- ${selectedRoutes.find((r) => r.id === activeRouteId)?.name}`
@@ -814,7 +735,6 @@ export default function BookingScreen() {
                       styles.modalItemSelected,
                   ]}
                   onPress={() => {
-                    // [CHANGED] Update the specific route's time
                     activeRouteId && updateRouteDetail(activeRouteId, 'time', time);
                     setShowTimeModal(false);
                   }}
@@ -883,7 +803,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // [NEW] Style for the selected routes count banner
   selectedCountBanner: {
     backgroundColor: '#1a1a00',
     borderRadius: 12,
@@ -979,22 +898,6 @@ const styles = StyleSheet.create({
   currencyPer: { fontSize: 11, color: '#666666' },
   currencyCheck: { position: 'absolute', top: 8, right: 8 },
 
-  payCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 2,
-    borderColor: '#333333',
-    marginBottom: 10,
-  },
-  payCardDisabled: { opacity: 0.4 },
-  payIcon: { fontSize: 24 },
-  payLabel: { fontSize: 15, color: '#FFFFFF', fontWeight: '500' },
-  payTag: { fontSize: 11, color: '#666666', marginTop: 2 },
-
   summaryCard: {
     backgroundColor: '#1a1a1a',
     borderRadius: 16,
@@ -1010,7 +913,6 @@ const styles = StyleSheet.create({
     color: '#FCDE06',
     marginBottom: 4,
   },
-  // [NEW] Style for grouping each route in the summary
   routeSummaryGroup: {
     marginBottom: 12,
     paddingBottom: 12,

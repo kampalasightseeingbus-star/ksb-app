@@ -5,6 +5,8 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -68,90 +70,99 @@ export default function RegisterScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      {/* Logo and title */}
-      <View style={styles.header}>
-        <Text style={styles.emoji}>🚌</Text>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>
-          Join Kampala Sightseeing Bus
-        </Text>
-      </View>
-
-      <View style={styles.form}>
-
-        {/* First name */}
-        <Text style={styles.label}>First Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. John"
-          placeholderTextColor="#666"
-          value={firstName}
-          onChangeText={setFirstName}
-          autoCapitalize="words"
-        />
-
-        {/* Last name */}
-        <Text style={styles.label}>Last Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. Mukasa"
-          placeholderTextColor="#666"
-          value={lastName}
-          onChangeText={setLastName}
-          autoCapitalize="words"
-        />
-
-        {/* Phone number */}
-        <Text style={styles.label}>Phone Number</Text>
-        <View style={styles.phoneRow}>
-          <View style={styles.countryCode}>
-            <Text style={styles.countryCodeText}>🇺🇬 +256</Text>
-          </View>
-          <TextInput
-            style={styles.phoneInput}
-            placeholder="700 000 000"
-            placeholderTextColor="#666"
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            maxLength={10}
-          />
-        </View>
-        <Text style={styles.hint}>
-          An OTP will be sent to this number via SMS
-        </Text>
-
-        {/* Send OTP button */}
-        <TouchableOpacity
-          style={[styles.btn, loading && styles.btnDisabled]}
-          onPress={handleSendOTP}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#000000" />
-          ) : (
-            <>
-              <Ionicons name="phone-portrait-outline" size={20} color="#000000" />
-              <Text style={styles.btnText}>Send OTP</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        {/* Link to login */}
-        <TouchableOpacity
-          style={styles.link}
-          onPress={() => router.push('/login' as any)}
-        >
-          <Text style={styles.linkText}>
-            Already have an account? Log In
+        {/* Logo and title */}
+        <View style={styles.header}>
+          <Text style={styles.emoji}>🚌</Text>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>
+            Join Kampala Sightseeing Bus
           </Text>
-        </TouchableOpacity>
+        </View>
 
-      </View>
-    </ScrollView>
+        <View style={styles.form}>
+
+          {/* First name */}
+          <Text style={styles.label}>First Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. John"
+            placeholderTextColor="#666"
+            value={firstName}
+            onChangeText={setFirstName}
+            autoCapitalize="words"
+          />
+
+          {/* Last name */}
+          <Text style={styles.label}>Last Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Mukasa"
+            placeholderTextColor="#666"
+            value={lastName}
+            onChangeText={setLastName}
+            autoCapitalize="words"
+          />
+
+          {/* Phone number */}
+          <Text style={styles.label}>Phone Number</Text>
+          <View style={styles.phoneRow}>
+            <View style={styles.countryCode}>
+              <Text style={styles.countryCodeText}>🇺🇬 +256</Text>
+            </View>
+            <TextInput
+              style={styles.phoneInput}
+              placeholder="700 000 000"
+              placeholderTextColor="#666"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+              maxLength={10}
+            />
+          </View>
+          <Text style={styles.hint}>
+            An OTP will be sent to this number via SMS
+          </Text>
+
+          {/* Send OTP button */}
+          <TouchableOpacity
+            style={[styles.btn, loading && styles.btnDisabled]}
+            onPress={handleSendOTP}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#000000" />
+            ) : (
+              <>
+                <Ionicons name="phone-portrait-outline" size={20} color="#000000" />
+                <Text style={styles.btnText}>Send OTP</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Link to login */}
+          <TouchableOpacity
+            style={styles.link}
+            onPress={() => router.push('/login' as any)}
+          >
+            <Text style={styles.linkText}>
+              Already have an account? Log In
+            </Text>
+          </TouchableOpacity>
+
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
