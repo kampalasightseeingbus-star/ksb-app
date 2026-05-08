@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   ScrollView,
   StatusBar,
@@ -219,13 +220,12 @@ export default function BookingScreen() {
     });
   };
 
-  const handleProceed = () => {
+    const handleProceed = async () => {
     if (selectedRoutes.length === 0) {
       Alert.alert('Incomplete', 'Please select at least one tour.');
       return;
     }
 
-    // Check each route has complete details
     const incompleteRoutes = selectedRoutes.filter((route) => {
       const details = routeDetails[route.id];
       return !details?.stop || !details?.day || !details?.time;
@@ -248,26 +248,24 @@ export default function BookingScreen() {
       return;
     }
 
-    // [CHANGED] Create booking parameters for multiple routes
-    const params = {
-      // Send all routes with their individual details
-      routes: selectedRoutes.map((route) => ({
-        routeId: route.id,
-        routeName: route.name,
-        stopName: routeDetails[route.id].stop,
-        day: routeDetails[route.id].day.fullDate,
-        time: routeDetails[route.id].time,
-      })),
-      amount: String(getAmount()),
-      currency: currency.toUpperCase(),
-      passengers: String(passengers),
-      paymentMethod: selectedPayment,
-    };
+    try {
+      const { paymentsAPI } = require('@/lib/api');
 
-    if (selectedPayment === 'mtn_momo' || selectedPayment === 'airtel_money') {
-      router.push({ pathname: '/pay-mobile', params } as any);
-    } else {
-      router.push({ pathname: '/pay-card', params } as any);
+      const data = await paymentsAPI.initiate(
+        1,              // schedule_id
+        1,              // seat_number
+        selectedPayment,
+        currency.toUpperCase(),
+        passengers
+      );
+
+      if (data.redirect_url) {
+        Linking.openURL(data.redirect_url);
+      } else {
+        Alert.alert('Error', data.message || 'Payment initiation failed');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not connect to payment service');
     }
   };
 
